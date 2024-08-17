@@ -1,0 +1,31 @@
+from functools import wraps
+
+# デコレータの生成
+def transaction(func):
+    """ トランザクションを開始するデコレータ
+
+    利用方法：デコレータとして付与する
+    
+    @transaction
+    def hoge():
+        pass
+    """
+    @wraps(func)
+    def decorator(*args, **kwargs):
+        with app.app_context():
+            try:
+                with db.session.begin():
+                    try:
+                        result = func(*args, **kwargs)
+                        db.session.commit()
+                        return result
+                    except Exception as e:
+                        db.session.rollback()
+                        raise e
+            except:
+                # 既にトランザクションやアプリコンテキストがある場合
+                # その設定を利用するため、withなしで処理をすすめる。
+                result = func(*args, **kwargs)
+                db.session.commit()
+                return result
+    return decorator
